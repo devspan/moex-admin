@@ -53,6 +53,9 @@
             bg-color="rgba(26, 27, 31, 0.6)"
             class="mb-6 login-field"
             hide-details
+            type="text"
+            maxlength="6"
+            @input="value => code = value.replace(/\D/g, '')"
           ></v-text-field>
 
           <div class="d-flex justify-space-between align-center mb-6">
@@ -129,31 +132,57 @@ const stats = [
 const login = async () => {
   try {
     loading.value = true;
-    const response = await axios.post(`${apiKey}login/`, {
+    const loginData = {
       username: user.value,
       password: pass.value,
-      otp_token: code.value
-    });    
-    localStorage.setItem("jwt_token", response.data.access_token);
-    router.push({path: '/page/dashboard'});
+      ...(code.value ? { otp_token: code.value.toString() } : {})
+    };
+
+    console.log('Login data:', loginData);
+
+    const response = await axios.post('login/', loginData);    
+
+    if (response.data.access_token) {
+      localStorage.setItem("jwt_token", response.data.access_token);
+      if (response.data.refresh_token) {
+        localStorage.setItem("refresh_token", response.data.refresh_token);
+      }
+      router.push('/admin');
+    } else {
+      throw new Error('Invalid response from server');
+    }
   } catch (error) {
-    showAlert(error);
+    console.error('Login error:', error?.response?.data || error);
+    
+    if (error.response?.data?.error === "Incorrect 2FA token") {
+      alertText.value = "Incorrect 2FA code. Please try again.";
+      code.value = '';
+    } else {
+      showAlert(error);
+    }
   } finally {
     loading.value = false;
   }
 }
 
 const showAlert = (err) => {
-  const alertMessage = findErrMessage(err);
-  if(alertMessage) {
-    alert.value = true;
-    alertText.value = alertMessage;
-    alertColor.value = 'error';
-    setTimeout(() => {
-      alert.value = false;
-      alertText.value = '';
-    }, 3000);
+  let message = 'Login failed. Please check your credentials.';
+  
+  if (err.response?.data?.error) {
+    message = err.response.data.error;
+  } else if (err.response?.data?.detail) {
+    message = err.response.data.detail;
+  } else if (typeof err === 'string') {
+    message = err;
   }
+
+  alert.value = true;
+  alertText.value = message;
+  alertColor.value = 'error';
+  setTimeout(() => {
+    alert.value = false;
+    alertText.value = '';
+  }, 3000);
 }
 </script>
 

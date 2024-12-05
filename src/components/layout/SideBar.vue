@@ -94,9 +94,9 @@ const param = ref(route.path);
 const devs = ref({});
 
 const getNavigation = async () => {
-  if (!window.location.href.includes("/login"))
+  if (!window.location.href.includes("/login")) {
     try {
-      const response = await axios.get(`${apiKey}navigation/`);
+      const response = await axios.get('navigation/');
       navigation.value = response.data;
       nav.setNavigation(response.data);
       let dStr = "";
@@ -111,17 +111,20 @@ const getNavigation = async () => {
         let menu = JSON.parse(localStorage.getItem("menu"));
         if (menu) devs.value = menu;
       } catch (e) {
-        console.log(e);
+        console.error('Menu parsing error:', e);
       }
     } catch (error) {
+      console.error('Navigation error:', error);
       if (
+        error?.response?.status === 401 ||
         error?.response?.data?.type === "authentication_failed" ||
         error?.response?.data?.code?.code === "token_not_valid" ||
         error?.response?.data?.type === "not_authenticated"
       ) {
-        initRouter.push({ name: "Login" });
+        router.push('/login');
       }
     }
+  }
 };
 
 const openMenu = ($) => {
@@ -131,11 +134,11 @@ const openMenu = ($) => {
 
 const getResources = async () => {
   try {
-    const response = await axios.get(`${apiKey}resources/`);
+    const response = await axios.get('resources/');
     resources.value = response.data;
     nav.setResources(response.data);
   } catch (error) {
-    console.log(error.type);
+    console.error('Resources error:', error);
   }
 };
 
