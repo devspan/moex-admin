@@ -156,7 +156,7 @@ const login = async () => {
 
     console.log('Login data:', loginData);
 
-    const response = await axios.post('/apiadmin/login/', loginData);    
+    const response = await axios.post('/login/', loginData);    
 
     if (response.data.access_token) {
       localStorage.setItem("jwt_token", response.data.access_token);

@@ -32,6 +32,10 @@ export default defineConfig(({ mode }) => {
                 headers: proxyReq.getHeaders()
               });
 
+              if (proxyReq.path.includes('/apiadmin/apiadmin/')) {
+                proxyReq.path = proxyReq.path.replace('/apiadmin/apiadmin/', '/apiadmin/');
+              }
+
               proxyReq.setHeader('Origin', 'https://cex.cryptodevworks.com');
               proxyReq.setHeader('Referer', 'https://cex.cryptodevworks.com/');
               proxyReq.setHeader('X-Requested-From', 'admin');
