@@ -96,7 +96,7 @@ const devs = ref({});
 const getNavigation = async () => {
   if (!window.location.href.includes("/login")) {
     try {
-      const response = await axios.get('navigation/');
+      const response = await axios.get('/navigation/');
       navigation.value = response.data;
       nav.setNavigation(response.data);
       let dStr = "";
@@ -134,7 +134,7 @@ const openMenu = ($) => {
 
 const getResources = async () => {
   try {
-    const response = await axios.get('apiadmin/resources/');
+    const response = await axios.get('/resources/');
     resources.value = response.data;
     nav.setResources(response.data);
   } catch (error) {

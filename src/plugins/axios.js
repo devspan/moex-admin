@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 const instance = axios.create({
-  baseURL: '',  // Use empty base URL since we'll include the full path in requests
+  baseURL: '/apiadmin',  // Use relative URL to work with Vite proxy
   headers: {
     'Content-Type': 'application/json',
     'X-Requested-From': 'admin'
@@ -14,6 +14,11 @@ instance.interceptors.request.use(config => {
   // Ensure URL ends with slash
   if (!config.url.endsWith('/')) {
     config.url += '/';
+  }
+
+  // Remove any duplicate /apiadmin prefixes
+  if (config.url.includes('/apiadmin/apiadmin/')) {
+    config.url = config.url.replace('/apiadmin/apiadmin/', '/apiadmin/');
   }
 
   // Log request details

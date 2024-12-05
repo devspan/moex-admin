@@ -660,11 +660,11 @@
   
   const getActions = async () => {
     try {
-      const response = await axios.get(`${apiKey}resources/`);
-      resources.value = response.data
-      nav.setResources(response.data)
+      const response = await axios.get('/resources/');
+      resources.value = response.data;
+      nav.setResources(response.data);
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
   } 
   
