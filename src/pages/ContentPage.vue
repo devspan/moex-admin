@@ -249,7 +249,12 @@
         ></v-progress-circular>
     </div>  
     <div class="content-page-table relative" v-else>
-      <input v-if="headersCustom[param].control" type="checkbox" style="position: absolute; top: 20px; left: 15px;" v-model="checkAll" />
+      <input 
+        v-if="param && headersCustom[param]?.control" 
+        type="checkbox" 
+        style="position: absolute; top: 20px; left: 15px;" 
+        v-model="checkAll" 
+      />
       <template v-if="!data.results || data.results.length === 0">
         <div class="text-center">No data available</div>
       </template>      
@@ -449,8 +454,8 @@
   const customizeFields = ref(false)
   const headers = ref([])
   const headersCustom = ref({})
-  const info = ref([])
-  const data = ref([])
+  const info = ref({})
+  const data = ref({ results: [] })
   const addition = ref([])
   const filters = ref({})
   const act = ref({})
@@ -669,75 +674,100 @@
   } 
   
   const headerShow = computed(() => {
-    localStorage.setItem('customize', JSON.stringify(headersCustom.value))
-    return headers.value.filter($ => headersCustom.value?.[param.value]?.[$.key])
+    if (!param.value || !headersCustom.value[param.value]) {
+      return [];
+    }
+    localStorage.setItem('customize', JSON.stringify(headersCustom.value));
+    return headers.value.filter($ => headersCustom.value[param.value]?.[$.key]);
   })
   
   const filterStr = computed(() => {
-    let str = ""
-    Object.keys(filters.value).map($ => {
-      if(filters.value[$]?.on !== "" && filters.value[$]?.on !== undefined) {
-        str += `&${$}=${filters.value[$]?.on}`
+    if (!filters.value || typeof filters.value !== 'object') {
+      return '';
+    }
+    
+    let str = '';
+    Object.keys(filters.value).forEach(key => {
+      const filter = filters.value[key];
+      if (filter && filter.on !== undefined && filter.on !== '') {
+        str += `&${key}=${filter.on}`;
       }
-    })
-    return str
-  })
+    });
+    return str;
+  });
   
   watch(filterStr, () => {
-    getPaginateData(param.value)
-  })
+    if (param.value && endsWithList(param.value)) {
+      getPaginateData(param.value);
+    }
+  });
   
   const getData = async (path) => { 
-    tableLoading.value = true
-    let pathSepar = splitAndReplace(removeListSuffix(path))
-    await getActions()
-    addition.value = await nav.getResources.filter($ => $.name === removeListSuffix(path))  
-    if(endsWithList(path)) 
+    if (!path) return;
+    
+    tableLoading.value = true;
+    
+    // Ensure headersCustom is initialized for the current path
+    if (!headersCustom.value[path]) {
+      headersCustom.value[path] = {};
+    }
+    
+    filters.value = filters.value || {};
+    
+    let pathSepar = splitAndReplace(removeListSuffix(path));
+    await getActions();
+    addition.value = await nav.getResources.filter($ => $.name === removeListSuffix(path));  
+    if(endsWithList(path)) {
       try {
-        const options = await axios.options(`${apiKey}${pathSepar[0]}/${pathSepar[1]}/`);
-        info.value = options.data
-        filters.value = options.data.filters      
-        Object.keys(filters.value).map($ => filters.value[$]['on'] = "")
-        const response = await axios.get(`${apiKey}${pathSepar[0]}/${pathSepar[1]}/?limit=${perPage.value}&offset=0`);
-        data.value = response.data
-        pageCount.value = Math.ceil(response.data.count / 10)
-        headers.value = normFields(info.value.list_fields)
-        const customizeFromString = localStorage.getItem('customize') || '{}'
-        if(customizeFromString.length > 3) {
-          const customizeFrom = JSON.parse(customizeFromString)
-          if(Object.keys(customizeFrom).length === 0) {
-            headersCustom.value[param.value] = {}
-            headers.value.map($ => {
-              headersCustom.value[param.value][$.key] = true
-            })
-          } else {
-            if(!customizeFrom[param.value] || Object.keys(customizeFrom?.[param.value]).length === 0) {
-              headersCustom.value[param.value] = {}
-              headers.value.map($ => {
-                headersCustom.value[param.value][$.key] = true
-              })
-              localStorage.setItem('customize', JSON.stringify(headersCustom.value))
-            } else {
-              headersCustom.value = customizeFrom
+        const options = await axios.get(`${pathSepar[0]}/${pathSepar[1]}/`);
+        info.value = options.data;
+        filters.value = options.data.filters || {};
+        
+        // Initialize filter values
+        Object.keys(filters.value).forEach(key => {
+          filters.value[key] = filters.value[key] || {};
+          filters.value[key].on = '';
+        });
+
+        const response = await axios.get(`${pathSepar[0]}/${pathSepar[1]}/?limit=${perPage.value}&offset=0`);
+        data.value = response.data;
+        pageCount.value = Math.ceil(response.data.count / 10);
+        headers.value = normFields(info.value.list_fields);
+        
+        // Initialize headersCustom for current param
+        if (!headersCustom.value[param.value]) {
+          headersCustom.value[param.value] = {};
+        }
+        
+        // Set all headers to visible by default
+        headers.value.forEach($ => {
+          headersCustom.value[param.value][$.key] = true;
+        });
+
+        // Try to load saved customize settings
+        try {
+          const customizeFromString = localStorage.getItem('customize');
+          if (customizeFromString) {
+            const customizeFrom = JSON.parse(customizeFromString);
+            if (customizeFrom[param.value]) {
+              headersCustom.value[param.value] = customizeFrom[param.value];
             }
           }
-        } else {
-          headersCustom.value[param.value] = {}
-          headers.value.map($ => {
-            headersCustom.value[param.value][$.key] = true
-          })
-          localStorage.setItem('customize', JSON.stringify(headersCustom.value))
+        } catch (e) {
+          console.error('Error loading customize settings:', e);
         }
-        tableLoading.value = false
+
+        tableLoading.value = false;
 
         if (route.query.edit) {
-          getEditData(route.query.edit)
+          getEditData(route.query.edit);
         }
       } catch (error) {         
-        showAlert(error)
-        tableLoading.value = false
+        showAlert(error);
+        tableLoading.value = false;
       }
-  }
+    }
+  };
   
   watch(pageNum, (newVal) => {
     getPaginateData(param.value)
