@@ -55,7 +55,8 @@
             hide-details
             type="text"
             maxlength="6"
-            @input="value => code = value.replace(/\D/g, '')"
+            @input="handleCodeInput"
+            placeholder="Enter 6-digit code"
           ></v-text-field>
 
           <div class="d-flex justify-space-between align-center mb-6">
@@ -129,18 +130,33 @@ const stats = [
   { label: "Markets", value: "89+" }
 ];
 
+const handleCodeInput = (event) => {
+  // Ensure we only get numbers and limit to 6 digits
+  const value = event.target.value.replace(/\D/g, '').slice(0, 6);
+  code.value = value;
+};
+
 const login = async () => {
   try {
     loading.value = true;
+    
+    // Validate inputs
+    if (!user.value || !pass.value || !code.value) {
+      alertText.value = "Please fill in all fields";
+      alertColor.value = "error";
+      alert.value = true;
+      return;
+    }
+
     const loginData = {
       username: user.value,
       password: pass.value,
-      ...(code.value ? { otp_token: code.value.toString() } : {})
+      otp_token: code.value
     };
 
     console.log('Login data:', loginData);
 
-    const response = await axios.post('login/', loginData);    
+    const response = await axios.post('/apiadmin/login/', loginData);    
 
     if (response.data.access_token) {
       localStorage.setItem("jwt_token", response.data.access_token);

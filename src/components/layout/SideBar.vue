@@ -134,7 +134,7 @@ const openMenu = ($) => {
 
 const getResources = async () => {
   try {
-    const response = await axios.get('resources/');
+    const response = await axios.get('apiadmin/resources/');
     resources.value = response.data;
     nav.setResources(response.data);
   } catch (error) {

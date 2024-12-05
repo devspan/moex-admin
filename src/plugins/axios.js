@@ -1,25 +1,24 @@
 import axios from 'axios';
-import localConfig from '../local_config';
 
-const isDev = import.meta.env.DEV;
-const baseURL = localConfig.api;
-
+// Create axios instance with base configuration
 const instance = axios.create({
-  baseURL,
+  baseURL: '',  // Use empty base URL since we'll include the full path in requests
   headers: {
     'Content-Type': 'application/json',
     'X-Requested-From': 'admin'
-  }
+  },
+  withCredentials: true
 });
 
 instance.interceptors.request.use(config => {
+  // Ensure URL ends with slash
   if (!config.url.endsWith('/')) {
     config.url += '/';
   }
 
+  // Log request details
   console.log('Request:', {
     url: config.url,
-    fullUrl: `${baseURL}${config.url}`,
     method: config.method,
     headers: config.headers,
     data: config.data
